@@ -124,14 +124,14 @@ jobs:
             Copy-Item -Force $_.FullName $out
           }
 
-          @'
-MortalClient Windows x64 test build.
-
-This package contains the executable and runtime DLLs only.
-The required NX game-data files are intentionally handled separately:
-Character.nx, Effect.nx, Etc.nx, Item.nx, Map.nx, Mob.nx, Npc.nx,
-Quest.nx, Reactor.nx, Skill.nx, Sound.nx, String.nx, TamingMob.nx, UI.nx.
-'@ | Set-Content -Encoding UTF8 (Join-Path $out 'README-TEST.txt')
+          @(
+            'MortalClient Windows x64 test build.',
+            '',
+            'This package contains the executable and runtime DLLs only.',
+            'The required NX game-data files are handled separately:',
+            'Character.nx, Effect.nx, Etc.nx, Item.nx, Map.nx, Mob.nx, Npc.nx,',
+            'Quest.nx, Reactor.nx, Skill.nx, Sound.nx, String.nx, TamingMob.nx, UI.nx.'
+          ) | Set-Content -Encoding UTF8 (Join-Path $out 'README-TEST.txt')
 
       - name: Upload Windows test client
         uses: actions/upload-artifact@v4
