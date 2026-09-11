@@ -1,32 +1,3 @@
-# MortalClient: a continuation of a continuation of JourneyClient
-
-[![GNU AGPL v3+](https://img.shields.io/badge/license-AGPL%20v3%2B-brightgreen.svg)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![C++17 standard](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
-[![clang++ version](https://img.shields.io/badge/clang%2B%2B-8.0.1+-dd66aa.svg)](http://clang.llvm.org/)
-[![Global Maplestory version 83](https://img.shields.io/badge/Maplestory-GMS_v83-orange.svg)](https://en.wikipedia.org/wiki/MapleStory)
-
-## JourneyClient
-
-JourneyClient is a custom, made-from-scratch game client for
-[Maplestory](https://en.wikipedia.org/wiki/MapleStory).
-JourneyClient is written in [C++](https://en.wikipedia.org/wiki/C%2B%2B) and
-was created by Daniel Allendorf in 2015.
-
-The LibreMaple project aimed to make a version of Maplestory that is
-[100% free and open](https://www.fsf.org/about/what-is-free-software) on both
-the server and client sides, to preserve the freedom of its users and enable
-creativity and collaboration around the game. As such, the LibreMaple project
-took the JourneyClient as a starting point.
-
-LibreMaple aimed also to make the client
-[cross-platform](https://en.wikipedia.org/wiki/Cross-platform)
-([GNU+Linux](https://en.wikipedia.org/wiki/Linux)/[macOS](https://en.wikipedia.org/wiki/MacOS)/[Windows NT](https://en.wikipedia.org/wiki/Windows_NT)/[FreeBSD](https://en.wikipedia.org/wiki/FreeBSD)/etc.)
-as well, so decisions were and are made with a cross-platform mindset as well
-as a free software one.
-
-MortalClient continues the work of LibreMaple, taking it in a further direction
-of rectifying the game's flaws for our future selves and future generations.
-
 ## Supported versions
 
 The client is intended to be quasi-conformant with GMS version 83. For the UI
@@ -458,33 +429,3 @@ MortalClient uses crypto (`JOURNEY_USE_CRYPTO`), and also uses ASIO
 | Config            | [cpptoml](https://github.com/skystrife/cpptoml)            | MIT                 | -              | Yes              | No            |
 | General           | [Boost](https://www.boost.org/) (Bimap, Container)         | Boost               | -              | Yes              | No            |
 | Strings           | [tinyutf8](https://github.com/DuffsDevice/tinyutf8/)       | BSD 3-Clause        | -              | No               | No            |
-
-## Licensing
-
-[![GNU AGPL v3+](https://www.gnu.org/graphics/agplv3-155x51.png)](https://www.gnu.org/licenses/agpl-3.0.en.html)
-
-All MortalClient/LibreMaple/JourneyClient code is © 2015-2016 Daniel Allendorf,
-2018-2019 LibreMaple Team, licensed under the
-[GNU Affero General Public License version 3 or higher](https://www.gnu.org/licenses/agpl-3.0.en.html)
-(GNU AGPL). See "LICENSE" for the full text.
-
-That implies a few things. For one, that makes this work a work of **free**
-**software**, including both the source code *and any binaries created from*
-*it*. According to the Free Software Foundation:
-
-> A program is free software if the program's users have the four essential
-> freedoms:
->
-> * The freedom to run the program as you wish, for any purpose (freedom 0).
-> * The freedom to study how the program works, and change it so it does your
->   computing as you wish (freedom 1). Access to the source code is a
->   precondition for this.
-> * The freedom to redistribute copies so you can help others (freedom 2).
-> * The freedom to distribute copies of your modified versions to others
->   (freedom 3). By doing this you can give the whole community a chance to
->   benefit from your changes. Access to the source code is a precondition for
->   this.
-
-As the above text implies, *derived/modified works are encouraged*, and due to
-the nature of the GNU AGPL, all such works are free software as well (also
-licensed under the GNU AGPL).
