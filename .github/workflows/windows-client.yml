@@ -1,0 +1,142 @@
+name: Build Windows MortalClient
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/windows-client.yml'
+      - 'CMakeLists.txt'
+      - '**/*.cpp'
+      - '**/*.h'
+      - '**/*.hpp'
+      - 'settings.toml'
+
+jobs:
+  build-windows-x64:
+    runs-on: windows-2022
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout MortalClient
+        uses: actions/checkout@v4
+
+      - name: Install binary and header dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vcpkg = Join-Path $env:VCPKG_INSTALLATION_ROOT 'vcpkg.exe'
+          & $vcpkg install `
+            freetype:x64-windows `
+            glew:x64-windows `
+            glfw3:x64-windows `
+            lz4:x64-windows `
+            sdl2:x64-windows `
+            sdl2-mixer:x64-windows `
+            asio:x64-windows `
+            boost-bimap:x64-windows `
+            boost-container:x64-windows
+
+      - name: Prepare legacy dependency layout
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $workspace = $env:GITHUB_WORKSPACE
+          $parent = Split-Path $workspace -Parent
+          $installed = Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed\x64-windows'
+
+          git clone --depth 1 https://github.com/HypatiaOfAlexandria/NoLifeNx.git (Join-Path $parent 'nlnx')
+          git clone --depth 1 https://github.com/skystrife/cpptoml.git (Join-Path $parent 'cpptoml')
+          git clone --depth 1 https://github.com/imneme/pcg-cpp.git (Join-Path $parent 'pcg-cpp')
+          git clone --depth 1 https://github.com/DuffsDevice/tinyutf8.git (Join-Path $parent 'tinyutf8')
+
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'freetype\include') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'freetype\win64') | Out-Null
+          Copy-Item -Recurse -Force (Join-Path $installed 'include\freetype2\*') (Join-Path $parent 'freetype\include')
+          Copy-Item -Force (Join-Path $installed 'lib\freetype.lib') (Join-Path $parent 'freetype\win64\freetype.lib')
+
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'glew\include') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'glew\lib\Release\x64') | Out-Null
+          Copy-Item -Recurse -Force (Join-Path $installed 'include\GL') (Join-Path $parent 'glew\include\GL')
+          $glewLib = Get-ChildItem (Join-Path $installed 'lib') -Filter 'glew*.lib' | Select-Object -First 1
+          if (-not $glewLib) { throw 'GLEW import library not found in vcpkg install.' }
+          Copy-Item -Force $glewLib.FullName (Join-Path $parent 'glew\lib\Release\x64\glew32.lib')
+
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'glfw\include') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'glfw\lib-vc2015') | Out-Null
+          Copy-Item -Recurse -Force (Join-Path $installed 'include\GLFW') (Join-Path $parent 'glfw\include\GLFW')
+          $glfwLib = Get-ChildItem (Join-Path $installed 'lib') -Filter 'glfw3*.lib' | Select-Object -First 1
+          if (-not $glfwLib) { throw 'GLFW static/import library not found in vcpkg install.' }
+          Copy-Item -Force $glfwLib.FullName (Join-Path $parent 'glfw\lib-vc2015\glfw3.lib')
+
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'lz4\include') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'lz4\dll') | Out-Null
+          Copy-Item -Force (Join-Path $installed 'include\lz4*.h') (Join-Path $parent 'lz4\include')
+          $lz4Lib = Get-ChildItem (Join-Path $installed 'lib') -Filter '*lz4*.lib' | Select-Object -First 1
+          if (-not $lz4Lib) { throw 'LZ4 import library not found in vcpkg install.' }
+          Copy-Item -Force $lz4Lib.FullName (Join-Path $parent 'lz4\dll\liblz4.lib')
+
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'asio\include') | Out-Null
+          Copy-Item -Force (Join-Path $installed 'include\asio.hpp') (Join-Path $parent 'asio\include\asio.hpp')
+          Copy-Item -Recurse -Force (Join-Path $installed 'include\asio') (Join-Path $parent 'asio\include\asio')
+
+          New-Item -ItemType Directory -Force -Path (Join-Path $parent 'boost') | Out-Null
+          Copy-Item -Recurse -Force (Join-Path $installed 'include\boost') (Join-Path $parent 'boost\boost')
+
+          "SDL2_INCLUDE=$installed\include\SDL2" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VCPKG_BIN=$installed\bin" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VCPKG_LIB=$installed\lib" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Configure Windows x64 build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:INCLUDE = "$env:SDL2_INCLUDE;$env:INCLUDE"
+          cmake -S . -B build-win `
+            -G "Visual Studio 17 2022" `
+            -A x64 `
+            -T ClangCL `
+            -D CMAKE_BUILD_TYPE=Release `
+            "-D CMAKE_EXE_LINKER_FLAGS=/LIBPATH:$env:VCPKG_LIB SDL2.lib SDL2main.lib SDL2_mixer.lib"
+
+      - name: Build JourneyClient.exe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:INCLUDE = "$env:SDL2_INCLUDE;$env:INCLUDE"
+          cmake --build build-win --config Release --parallel
+
+      - name: Assemble test client artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:GITHUB_WORKSPACE 'artifact\MortalClient-Test'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+
+          $exe = Get-ChildItem -Recurse -Path (Join-Path $env:GITHUB_WORKSPACE 'build-win') -Filter 'JourneyClient.exe' | Select-Object -First 1
+          if (-not $exe) { throw 'JourneyClient.exe was not produced.' }
+          Copy-Item -Force $exe.FullName (Join-Path $out 'JourneyClient.exe')
+
+          Copy-Item -Force (Join-Path $env:GITHUB_WORKSPACE 'settings.toml') (Join-Path $out 'settings.toml')
+          Copy-Item -Recurse -Force (Join-Path $env:GITHUB_WORKSPACE 'fonts') (Join-Path $out 'fonts')
+
+          Get-ChildItem $env:VCPKG_BIN -Filter '*.dll' | ForEach-Object {
+            Copy-Item -Force $_.FullName $out
+          }
+
+          @'
+MortalClient Windows x64 test build.
+
+This package contains the executable and runtime DLLs only.
+The required NX game-data files are intentionally handled separately:
+Character.nx, Effect.nx, Etc.nx, Item.nx, Map.nx, Mob.nx, Npc.nx,
+Quest.nx, Reactor.nx, Skill.nx, Sound.nx, String.nx, TamingMob.nx, UI.nx.
+'@ | Set-Content -Encoding UTF8 (Join-Path $out 'README-TEST.txt')
+
+      - name: Upload Windows test client
+        uses: actions/upload-artifact@v4
+        with:
+          name: MortalClient-Windows-x64
+          path: artifact/MortalClient-Test
+          if-no-files-found: error
+          retention-days: 14
